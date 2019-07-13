@@ -31,6 +31,7 @@
             this.components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(FrmPoslodavci));
             this.dgvPoslodavci = new System.Windows.Forms.DataGridView();
+            this.poslodavacBindingSource = new System.Windows.Forms.BindingSource(this.components);
             this.label1 = new System.Windows.Forms.Label();
             this.txtSifra = new System.Windows.Forms.TextBox();
             this.txtNaziv = new System.Windows.Forms.TextBox();
@@ -51,10 +52,9 @@
             this.Naziv = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.Sjediste = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.OIB = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.poslodavacBindingSource = new System.Windows.Forms.BindingSource(this.components);
             ((System.ComponentModel.ISupportInitialize)(this.dgvPoslodavci)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.poslodavacBindingSource)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             this.SuspendLayout();
             // 
             // dgvPoslodavci
@@ -78,6 +78,10 @@
             this.dgvPoslodavci.Size = new System.Drawing.Size(673, 368);
             this.dgvPoslodavci.TabIndex = 0;
             this.dgvPoslodavci.SelectionChanged += new System.EventHandler(this.dgvPoslodavci_SelectionChanged);
+            // 
+            // poslodavacBindingSource
+            // 
+            this.poslodavacBindingSource.DataSource = typeof(StudentskiServis.Poslodavac);
             // 
             // label1
             // 
@@ -263,13 +267,9 @@
             // OIB
             // 
             this.OIB.DataPropertyName = "OIB";
-            this.OIB.HeaderText = "OIB";
+            this.OIB.HeaderText = "PID";
             this.OIB.Name = "OIB";
             this.OIB.ReadOnly = true;
-            // 
-            // poslodavacBindingSource
-            // 
-            this.poslodavacBindingSource.DataSource = typeof(StudentskiServis.Poslodavac);
             // 
             // FrmPoslodavci
             // 
@@ -299,8 +299,8 @@
             this.Text = "Employers";
             this.Load += new System.EventHandler(this.FrmPoslodavci_Load);
             ((System.ComponentModel.ISupportInitialize)(this.dgvPoslodavci)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.poslodavacBindingSource)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
