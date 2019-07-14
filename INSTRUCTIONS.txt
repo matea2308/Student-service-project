@@ -1,0 +1,8 @@
+In order to set up working environment for Student-service-project application, please follow there instructions:
+1. Install PostgreSQL 10.6 (please choose the version that works for your operating system, which you can find here: https://www.enterprisedb.com/downloads/postgres-postgresql-downloads)
+2. Add extension called temporal_tables (file can be found at: https://github.com/arkhipov/temporal_tables/releases - v1.2.0, pg10-x64.zip)
+3. Copy content/files from \share\extension to same directory in your PostgreSQL installation
+4. Copy content/files from \lib to same directory in your PostgreSQL installation
+5. Run SQL commands that can be found "user.txt" by using pgAdmin (right click on default, "postgres" database > Query Tool)
+6. Run SQL commands that can be found "db_part1.txt" by using pgAdmin (right click on default, "postgres" database > Query Tool)
+7. Run SQL commands that can be found "db_part2.txt" by using pgAdmin (right click on "TBP_baza" database > Query Tool)

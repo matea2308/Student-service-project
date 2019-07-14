@@ -1,0 +1,909 @@
+﻿CREATE SCHEMA md;
+
+
+ALTER SCHEMA md OWNER TO mderjanovic;
+
+--
+-- TOC entry 1 (class 3079 OID 12924)
+-- Name: plpgsql; Type: EXTENSION; Schema: -; Owner: 
+--
+
+CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;
+
+
+--
+-- TOC entry 2893 (class 0 OID 0)
+-- Dependencies: 1
+-- Name: EXTENSION plpgsql; Type: COMMENT; Schema: -; Owner: 
+--
+
+COMMENT ON EXTENSION plpgsql IS 'PL/pgSQL procedural language';
+
+
+--
+-- TOC entry 2 (class 3079 OID 16607)
+-- Name: temporal_tables; Type: EXTENSION; Schema: -; Owner: 
+--
+
+CREATE EXTENSION IF NOT EXISTS temporal_tables WITH SCHEMA public;
+
+
+--
+-- TOC entry 2894 (class 0 OID 0)
+-- Dependencies: 2
+-- Name: EXTENSION temporal_tables; Type: COMMENT; Schema: -; Owner: 
+--
+
+COMMENT ON EXTENSION temporal_tables IS 'temporal tables';
+
+
+--
+-- TOC entry 212 (class 1255 OID 16505)
+-- Name: provjera_br_iskaznice(); Type: FUNCTION; Schema: md; Owner: postgres
+--
+
+CREATE FUNCTION md.provjera_br_iskaznice() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+	BEGIN
+		IF NOT NEW.broj_studentske_iskaznice ~ '\d{6}' THEN
+			RAISE EXCEPTION 'Broj studentske iskaznice mora sadržavati 6 brojeva!';
+		ELSE
+			RETURN NEW;
+		END IF;
+	END;
+$$;
+
+
+ALTER FUNCTION md.provjera_br_iskaznice() OWNER TO postgres;
+
+--
+-- TOC entry 213 (class 1255 OID 16506)
+-- Name: provjera_datum_rod(); Type: FUNCTION; Schema: md; Owner: postgres
+--
+
+CREATE FUNCTION md.provjera_datum_rod() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+	BEGIN
+		IF date_part('year', age(date_trunc('day', now()), NEW.datum_rodjenja)) < 15 THEN
+			RAISE EXCEPTION 'Izvođač studentskog posla mora imati najmanje 15 godina!';
+		ELSE
+			RETURN NEW;
+		END IF;
+	END;
+$$;
+
+
+ALTER FUNCTION md.provjera_datum_rod() OWNER TO postgres;
+
+--
+-- TOC entry 231 (class 1255 OID 16612)
+-- Name: provjera_duplikata_stavke(); Type: FUNCTION; Schema: md; Owner: mderjanovic
+--
+
+CREATE FUNCTION md.provjera_duplikata_stavke() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+	DECLARE
+		v_postoji VARCHAR(1);
+	BEGIN
+		SELECT 	'Y'
+		INTO	v_postoji
+		FROM	md.stavke_ugovora
+		WHERE	ID_ugovora = NEW.ID_ugovora
+		AND		vrsta_rada = NEW.vrsta_rada;
+		
+		IF COALESCE(v_postoji, 'N') = 'Y' THEN
+			RAISE EXCEPTION 'Stavka sa odabranom vrstom rada već postoji za odabrani ugovor!';
+		ELSE
+			RETURN NEW;
+		END IF;
+	END;
+$$;
+
+
+ALTER FUNCTION md.provjera_duplikata_stavke() OWNER TO mderjanovic;
+
+--
+-- TOC entry 214 (class 1255 OID 16508)
+-- Name: provjera_oiba(); Type: FUNCTION; Schema: md; Owner: postgres
+--
+
+CREATE FUNCTION md.provjera_oiba() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+	BEGIN
+		IF NOT NEW.oib ~ '\d{11}' THEN
+			RAISE EXCEPTION 'OIB mora sadržavati 11 brojeva!';
+		ELSE
+			RETURN NEW;
+		END IF;
+	END;
+$$;
+
+
+ALTER FUNCTION md.provjera_oiba() OWNER TO postgres;
+
+--
+-- TOC entry 215 (class 1255 OID 16509)
+-- Name: provjera_satnice(); Type: FUNCTION; Schema: md; Owner: postgres
+--
+
+CREATE FUNCTION md.provjera_satnice() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+	BEGIN
+		IF NEW.satnica < 23.44 THEN
+			RAISE EXCEPTION 'Minimalna satnica prema Zakonu mora biti 23.44 kune!';
+		ELSE
+			RETURN NEW;
+		END IF;
+	END;
+$$;
+
+
+ALTER FUNCTION md.provjera_satnice() OWNER TO postgres;
+
+--
+-- TOC entry 216 (class 1255 OID 16510)
+-- Name: provjera_sifre_poslodavca(); Type: FUNCTION; Schema: md; Owner: postgres
+--
+
+CREATE FUNCTION md.provjera_sifre_poslodavca() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+	BEGIN
+		IF NOT NEW.sifra ~ '\d{4}' THEN
+			RAISE EXCEPTION 'Šifra poslodavca mora sadržavati 4 brojke!';
+		ELSE
+			RETURN NEW;
+		END IF;
+	END;
+$$;
+
+
+ALTER FUNCTION md.provjera_sifre_poslodavca() OWNER TO postgres;
+
+SET default_tablespace = '';
+
+SET default_with_oids = false;
+
+--
+-- TOC entry 198 (class 1259 OID 16511)
+-- Name: grupe_poslova; Type: TABLE; Schema: md; Owner: postgres
+--
+
+CREATE TABLE md.grupe_poslova (
+    id_grupe integer NOT NULL,
+    naziv_grupe character varying(50) NOT NULL
+);
+
+
+ALTER TABLE md.grupe_poslova OWNER TO postgres;
+
+--
+-- TOC entry 199 (class 1259 OID 16514)
+-- Name: grupe_poslova_id_grupe_seq; Type: SEQUENCE; Schema: md; Owner: postgres
+--
+
+CREATE SEQUENCE md.grupe_poslova_id_grupe_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE md.grupe_poslova_id_grupe_seq OWNER TO postgres;
+
+--
+-- TOC entry 2895 (class 0 OID 0)
+-- Dependencies: 199
+-- Name: grupe_poslova_id_grupe_seq; Type: SEQUENCE OWNED BY; Schema: md; Owner: postgres
+--
+
+ALTER SEQUENCE md.grupe_poslova_id_grupe_seq OWNED BY md.grupe_poslova.id_grupe;
+
+
+--
+-- TOC entry 200 (class 1259 OID 16516)
+-- Name: poslodavci; Type: TABLE; Schema: md; Owner: postgres
+--
+
+CREATE TABLE md.poslodavci (
+    id_poslodavca integer NOT NULL,
+    sifra character varying(4) NOT NULL,
+    naziv character varying(50) NOT NULL,
+    sjediste character varying(50) NOT NULL,
+    oib character varying(11) NOT NULL
+);
+
+
+ALTER TABLE md.poslodavci OWNER TO postgres;
+
+--
+-- TOC entry 201 (class 1259 OID 16519)
+-- Name: poslodavci_id_poslodavca_seq; Type: SEQUENCE; Schema: md; Owner: postgres
+--
+
+CREATE SEQUENCE md.poslodavci_id_poslodavca_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE md.poslodavci_id_poslodavca_seq OWNER TO postgres;
+
+--
+-- TOC entry 2896 (class 0 OID 0)
+-- Dependencies: 201
+-- Name: poslodavci_id_poslodavca_seq; Type: SEQUENCE OWNED BY; Schema: md; Owner: postgres
+--
+
+ALTER SEQUENCE md.poslodavci_id_poslodavca_seq OWNED BY md.poslodavci.id_poslodavca;
+
+
+--
+-- TOC entry 202 (class 1259 OID 16521)
+-- Name: poslovi; Type: TABLE; Schema: md; Owner: postgres
+--
+
+CREATE TABLE md.poslovi (
+    id_posla integer NOT NULL,
+    id_grupe integer,
+    vrsta_posla character varying(50) NOT NULL,
+    opis character varying(100),
+    mjesto_obavljanja character varying(50) NOT NULL,
+    satnica double precision NOT NULL
+);
+
+
+ALTER TABLE md.poslovi OWNER TO postgres;
+
+--
+-- TOC entry 203 (class 1259 OID 16524)
+-- Name: poslovi_id_posla_seq; Type: SEQUENCE; Schema: md; Owner: postgres
+--
+
+CREATE SEQUENCE md.poslovi_id_posla_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE md.poslovi_id_posla_seq OWNER TO postgres;
+
+--
+-- TOC entry 2897 (class 0 OID 0)
+-- Dependencies: 203
+-- Name: poslovi_id_posla_seq; Type: SEQUENCE OWNED BY; Schema: md; Owner: postgres
+--
+
+ALTER SEQUENCE md.poslovi_id_posla_seq OWNED BY md.poslovi.id_posla;
+
+
+--
+-- TOC entry 204 (class 1259 OID 16526)
+-- Name: stavke_ugovora; Type: TABLE; Schema: md; Owner: postgres
+--
+
+CREATE TABLE md.stavke_ugovora (
+    id_stavke integer NOT NULL,
+    id_ugovora integer,
+    vrsta_rada character varying(50) NOT NULL,
+    broj_sati integer NOT NULL,
+    cijena double precision NOT NULL,
+    ukupno double precision NOT NULL
+);
+
+
+ALTER TABLE md.stavke_ugovora OWNER TO postgres;
+
+--
+-- TOC entry 205 (class 1259 OID 16529)
+-- Name: stavke_ugovora_id_stavke_seq; Type: SEQUENCE; Schema: md; Owner: postgres
+--
+
+CREATE SEQUENCE md.stavke_ugovora_id_stavke_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE md.stavke_ugovora_id_stavke_seq OWNER TO postgres;
+
+--
+-- TOC entry 2898 (class 0 OID 0)
+-- Dependencies: 205
+-- Name: stavke_ugovora_id_stavke_seq; Type: SEQUENCE OWNED BY; Schema: md; Owner: postgres
+--
+
+ALTER SEQUENCE md.stavke_ugovora_id_stavke_seq OWNED BY md.stavke_ugovora.id_stavke;
+
+
+--
+-- TOC entry 206 (class 1259 OID 16531)
+-- Name: strucne_spreme; Type: TABLE; Schema: md; Owner: postgres
+--
+
+CREATE TABLE md.strucne_spreme (
+    id_spreme integer NOT NULL,
+    kratica character varying(10),
+    naziv character varying(50) NOT NULL
+);
+
+
+ALTER TABLE md.strucne_spreme OWNER TO postgres;
+
+--
+-- TOC entry 207 (class 1259 OID 16534)
+-- Name: strucne_spreme_id_spreme_seq; Type: SEQUENCE; Schema: md; Owner: postgres
+--
+
+CREATE SEQUENCE md.strucne_spreme_id_spreme_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE md.strucne_spreme_id_spreme_seq OWNER TO postgres;
+
+--
+-- TOC entry 2899 (class 0 OID 0)
+-- Dependencies: 207
+-- Name: strucne_spreme_id_spreme_seq; Type: SEQUENCE OWNED BY; Schema: md; Owner: postgres
+--
+
+ALTER SEQUENCE md.strucne_spreme_id_spreme_seq OWNED BY md.strucne_spreme.id_spreme;
+
+
+--
+-- TOC entry 208 (class 1259 OID 16536)
+-- Name: studenti; Type: TABLE; Schema: md; Owner: postgres
+--
+
+CREATE TABLE md.studenti (
+    id_studenta integer NOT NULL,
+    id_spreme integer,
+    oib character varying(11) NOT NULL,
+    ime character varying(50) NOT NULL,
+    prezime character varying(50) NOT NULL,
+    adresa character varying(100) NOT NULL,
+    datum_rodjenja date NOT NULL,
+    broj_studentske_iskaznice character varying(20) NOT NULL
+);
+
+
+ALTER TABLE md.studenti OWNER TO postgres;
+
+--
+-- TOC entry 209 (class 1259 OID 16539)
+-- Name: studenti_id_studenta_seq; Type: SEQUENCE; Schema: md; Owner: postgres
+--
+
+CREATE SEQUENCE md.studenti_id_studenta_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE md.studenti_id_studenta_seq OWNER TO postgres;
+
+--
+-- TOC entry 2900 (class 0 OID 0)
+-- Dependencies: 209
+-- Name: studenti_id_studenta_seq; Type: SEQUENCE OWNED BY; Schema: md; Owner: postgres
+--
+
+ALTER SEQUENCE md.studenti_id_studenta_seq OWNED BY md.studenti.id_studenta;
+
+
+--
+-- TOC entry 210 (class 1259 OID 16541)
+-- Name: ugovori; Type: TABLE; Schema: md; Owner: postgres
+--
+
+CREATE TABLE md.ugovori (
+    id_ugovora integer NOT NULL,
+    id_poslodavca integer,
+    id_posla integer,
+    id_studenta integer,
+    trajanje tsrange
+);
+
+
+ALTER TABLE md.ugovori OWNER TO postgres;
+
+--
+-- TOC entry 211 (class 1259 OID 16547)
+-- Name: ugovori_id_ugovora_seq; Type: SEQUENCE; Schema: md; Owner: postgres
+--
+
+CREATE SEQUENCE md.ugovori_id_ugovora_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE md.ugovori_id_ugovora_seq OWNER TO postgres;
+
+--
+-- TOC entry 2901 (class 0 OID 0)
+-- Dependencies: 211
+-- Name: ugovori_id_ugovora_seq; Type: SEQUENCE OWNED BY; Schema: md; Owner: postgres
+--
+
+ALTER SEQUENCE md.ugovori_id_ugovora_seq OWNED BY md.ugovori.id_ugovora;
+
+
+--
+-- TOC entry 2717 (class 2604 OID 16549)
+-- Name: grupe_poslova id_grupe; Type: DEFAULT; Schema: md; Owner: postgres
+--
+
+ALTER TABLE ONLY md.grupe_poslova ALTER COLUMN id_grupe SET DEFAULT nextval('md.grupe_poslova_id_grupe_seq'::regclass);
+
+
+--
+-- TOC entry 2718 (class 2604 OID 16550)
+-- Name: poslodavci id_poslodavca; Type: DEFAULT; Schema: md; Owner: postgres
+--
+
+ALTER TABLE ONLY md.poslodavci ALTER COLUMN id_poslodavca SET DEFAULT nextval('md.poslodavci_id_poslodavca_seq'::regclass);
+
+
+--
+-- TOC entry 2719 (class 2604 OID 16551)
+-- Name: poslovi id_posla; Type: DEFAULT; Schema: md; Owner: postgres
+--
+
+ALTER TABLE ONLY md.poslovi ALTER COLUMN id_posla SET DEFAULT nextval('md.poslovi_id_posla_seq'::regclass);
+
+
+--
+-- TOC entry 2720 (class 2604 OID 16552)
+-- Name: stavke_ugovora id_stavke; Type: DEFAULT; Schema: md; Owner: postgres
+--
+
+ALTER TABLE ONLY md.stavke_ugovora ALTER COLUMN id_stavke SET DEFAULT nextval('md.stavke_ugovora_id_stavke_seq'::regclass);
+
+
+--
+-- TOC entry 2721 (class 2604 OID 16553)
+-- Name: strucne_spreme id_spreme; Type: DEFAULT; Schema: md; Owner: postgres
+--
+
+ALTER TABLE ONLY md.strucne_spreme ALTER COLUMN id_spreme SET DEFAULT nextval('md.strucne_spreme_id_spreme_seq'::regclass);
+
+
+--
+-- TOC entry 2722 (class 2604 OID 16554)
+-- Name: studenti id_studenta; Type: DEFAULT; Schema: md; Owner: postgres
+--
+
+ALTER TABLE ONLY md.studenti ALTER COLUMN id_studenta SET DEFAULT nextval('md.studenti_id_studenta_seq'::regclass);
+
+
+--
+-- TOC entry 2723 (class 2604 OID 16555)
+-- Name: ugovori id_ugovora; Type: DEFAULT; Schema: md; Owner: postgres
+--
+
+ALTER TABLE ONLY md.ugovori ALTER COLUMN id_ugovora SET DEFAULT nextval('md.ugovori_id_ugovora_seq'::regclass);
+
+
+--
+-- TOC entry 2872 (class 0 OID 16511)
+-- Dependencies: 198
+-- Data for Name: grupe_poslova; Type: TABLE DATA; Schema: md; Owner: postgres
+--
+
+INSERT INTO md.grupe_poslova (id_grupe, naziv_grupe) VALUES (2, 'Distribution');
+INSERT INTO md.grupe_poslova (id_grupe, naziv_grupe) VALUES (4, 'Geodetic work');
+INSERT INTO md.grupe_poslova (id_grupe, naziv_grupe) VALUES (5, 'Hotels and restaurants');
+INSERT INTO md.grupe_poslova (id_grupe, naziv_grupe) VALUES (9, 'Media, art and design');
+INSERT INTO md.grupe_poslova (id_grupe, naziv_grupe) VALUES (10, 'Journalism and proofreading');
+INSERT INTO md.grupe_poslova (id_grupe, naziv_grupe) VALUES (11, 'Education and training');
+INSERT INTO md.grupe_poslova (id_grupe, naziv_grupe) VALUES (12, 'Other');
+INSERT INTO md.grupe_poslova (id_grupe, naziv_grupe) VALUES (16, 'Jobs from social and humanistic areas');
+INSERT INTO md.grupe_poslova (id_grupe, naziv_grupe) VALUES (18, 'Production and preparation of production');
+INSERT INTO md.grupe_poslova (id_grupe, naziv_grupe) VALUES (20, 'Fairs, events and promotional activities');
+INSERT INTO md.grupe_poslova (id_grupe, naziv_grupe) VALUES (22, 'Sports, recreation and entertainment');
+INSERT INTO md.grupe_poslova (id_grupe, naziv_grupe) VALUES (23, 'Mechanical engineering and electrical engineering');
+INSERT INTO md.grupe_poslova (id_grupe, naziv_grupe) VALUES (25, 'Field work');
+INSERT INTO md.grupe_poslova (id_grupe, naziv_grupe) VALUES (27, 'Catering');
+INSERT INTO md.grupe_poslova (id_grupe, naziv_grupe) VALUES (29, 'Health care');
+INSERT INTO md.grupe_poslova (id_grupe, naziv_grupe) VALUES (1, 'Architecture, construction and geodesy');
+INSERT INTO md.grupe_poslova (id_grupe, naziv_grupe) VALUES (3, 'Physical jobs');
+INSERT INTO md.grupe_poslova (id_grupe, naziv_grupe) VALUES (6, 'Market research');
+INSERT INTO md.grupe_poslova (id_grupe, naziv_grupe) VALUES (7, 'Simple sales and service occupations');
+INSERT INTO md.grupe_poslova (id_grupe, naziv_grupe) VALUES (8, 'Marketing and market research');
+INSERT INTO md.grupe_poslova (id_grupe, naziv_grupe) VALUES (13, 'Customer support and call centers');
+INSERT INTO md.grupe_poslova (id_grupe, naziv_grupe) VALUES (14, 'Agriculture, forestry, veterinary and horticulture');
+INSERT INTO md.grupe_poslova (id_grupe, naziv_grupe) VALUES (15, 'Cleaning jobs');
+INSERT INTO md.grupe_poslova (id_grupe, naziv_grupe) VALUES (17, 'Translation and inocorespension');
+INSERT INTO md.grupe_poslova (id_grupe, naziv_grupe) VALUES (19, 'Accounting and finance');
+INSERT INTO md.grupe_poslova (id_grupe, naziv_grupe) VALUES (21, 'Warehousing and shipment of goods');
+INSERT INTO md.grupe_poslova (id_grupe, naziv_grupe) VALUES (24, 'Expert ICT jobs');
+INSERT INTO md.grupe_poslova (id_grupe, naziv_grupe) VALUES (26, 'Commercial and related professions');
+INSERT INTO md.grupe_poslova (id_grupe, naziv_grupe) VALUES (28, 'Office and retail jobs');
+
+
+--
+-- TOC entry 2874 (class 0 OID 16516)
+-- Dependencies: 200
+-- Data for Name: poslodavci; Type: TABLE DATA; Schema: md; Owner: postgres
+--
+
+INSERT INTO md.poslodavci (id_poslodavca, sifra, naziv, sjediste, oib) VALUES (9, '4234', 'Kaufland', 'Zagreb', '77994477215');
+INSERT INTO md.poslodavci (id_poslodavca, sifra, naziv, sjediste, oib) VALUES (11, '6622', 'McDonalds', 'Varaždin', '71238129101');
+INSERT INTO md.poslodavci (id_poslodavca, sifra, naziv, sjediste, oib) VALUES (12, '8621', 'H&M', 'Varaždin', '72132172100');
+INSERT INTO md.poslodavci (id_poslodavca, sifra, naziv, sjediste, oib) VALUES (14, '3819', 'Carlsberg ', 'Koprivnica', '81279901122');
+INSERT INTO md.poslodavci (id_poslodavca, sifra, naziv, sjediste, oib) VALUES (15, '7019', 'Podravka d.d.', 'Koprivnica', '71271283111');
+INSERT INTO md.poslodavci (id_poslodavca, sifra, naziv, sjediste, oib) VALUES (16, '4443', 'Selk d.d.', 'Kutina', '23221092355');
+INSERT INTO md.poslodavci (id_poslodavca, sifra, naziv, sjediste, oib) VALUES (17, '9024', 'Plodine d.d.', 'Bjelovar', '82994303032');
+INSERT INTO md.poslodavci (id_poslodavca, sifra, naziv, sjediste, oib) VALUES (18, '3332', 'Auto Koren d.o.o.', 'Križevci', '73235255151');
+INSERT INTO md.poslodavci (id_poslodavca, sifra, naziv, sjediste, oib) VALUES (19, '6523', 'A.S. j.d.o.o.', 'Križevci', '23124455566');
+INSERT INTO md.poslodavci (id_poslodavca, sifra, naziv, sjediste, oib) VALUES (20, '6612', 'Medonja j.d.o.o.', 'Varaždin', '81291204124');
+INSERT INTO md.poslodavci (id_poslodavca, sifra, naziv, sjediste, oib) VALUES (13, '4311', 'Maltar d.o.o.', 'Zagreb', '23889202342');
+INSERT INTO md.poslodavci (id_poslodavca, sifra, naziv, sjediste, oib) VALUES (28, '4341', 'Aldi', 'Burghausen', '21321312321');
+INSERT INTO md.poslodavci (id_poslodavca, sifra, naziv, sjediste, oib) VALUES (29, '9999', 'Edeka', 'Kastl', '23111232132');
+INSERT INTO md.poslodavci (id_poslodavca, sifra, naziv, sjediste, oib) VALUES (30, '2132', 'Penny Markt', 'Müldorf', '21312321321');
+
+
+--
+-- TOC entry 2876 (class 0 OID 16521)
+-- Dependencies: 202
+-- Data for Name: poslovi; Type: TABLE DATA; Schema: md; Owner: postgres
+--
+
+INSERT INTO md.poslovi (id_posla, id_grupe, vrsta_posla, opis, mjesto_obavljanja, satnica) VALUES (10, 3, 'Work in the store', 'Work on the cash register', 'Varaždin', 23.440000000000001);
+INSERT INTO md.poslovi (id_posla, id_grupe, vrsta_posla, opis, mjesto_obavljanja, satnica) VALUES (9, 5, 'Auxiliary jobs at the restaurant', 'Help in the kitchen', 'Varaždin', 24);
+INSERT INTO md.poslovi (id_posla, id_grupe, vrsta_posla, opis, mjesto_obavljanja, satnica) VALUES (11, 12, 'Work on the cash desk', 'Work on the cash desk', 'Bjelovar', 25);
+INSERT INTO md.poslovi (id_posla, id_grupe, vrsta_posla, opis, mjesto_obavljanja, satnica) VALUES (12, 27, 'Assistant waiter', 'Serving drinks', 'Varaždin', 25);
+INSERT INTO md.poslovi (id_posla, id_grupe, vrsta_posla, opis, mjesto_obavljanja, satnica) VALUES (13, 21, 'Job at warehouse', 'Stacking of goods', 'Križevci', 27);
+INSERT INTO md.poslovi (id_posla, id_grupe, vrsta_posla, opis, mjesto_obavljanja, satnica) VALUES (14, 3, 'Ancillary jobs in production', 'Weighing raw materials', 'Koprivnica', 23.440000000000001);
+INSERT INTO md.poslovi (id_posla, id_grupe, vrsta_posla, opis, mjesto_obavljanja, satnica) VALUES (15, 21, 'Transport-warehouse worker', 'Loading and unloading', 'Cakovec', 24.5);
+INSERT INTO md.poslovi (id_posla, id_grupe, vrsta_posla, opis, mjesto_obavljanja, satnica) VALUES (16, 8, 'Online marketing', 'Updating the website', 'Osijek', 24);
+INSERT INTO md.poslovi (id_posla, id_grupe, vrsta_posla, opis, mjesto_obavljanja, satnica) VALUES (17, 24, 'Programmer', 'Programming in C#', 'Zagreb', 50);
+INSERT INTO md.poslovi (id_posla, id_grupe, vrsta_posla, opis, mjesto_obavljanja, satnica) VALUES (24, 24, 'Programmer', 'Programming in Java', 'München', 55);
+
+
+--
+-- TOC entry 2878 (class 0 OID 16526)
+-- Dependencies: 204
+-- Data for Name: stavke_ugovora; Type: TABLE DATA; Schema: md; Owner: postgres
+--
+
+INSERT INTO md.stavke_ugovora (id_stavke, id_ugovora, vrsta_rada, broj_sati, cijena, ukupno) VALUES (33, 11, 'Rad noću, blagdani, nedjelja (50%)', 12, 36, 432);
+INSERT INTO md.stavke_ugovora (id_stavke, id_ugovora, vrsta_rada, broj_sati, cijena, ukupno) VALUES (34, 12, 'Redoviti rad', 50, 23.440000000000001, 1172);
+INSERT INTO md.stavke_ugovora (id_stavke, id_ugovora, vrsta_rada, broj_sati, cijena, ukupno) VALUES (35, 12, 'Rad noću, blagdani, nedjelja (50%)', 13, 35.159999999999997, 457.07999999999998);
+INSERT INTO md.stavke_ugovora (id_stavke, id_ugovora, vrsta_rada, broj_sati, cijena, ukupno) VALUES (36, 13, 'Redoviti rad', 50, 25, 1250);
+INSERT INTO md.stavke_ugovora (id_stavke, id_ugovora, vrsta_rada, broj_sati, cijena, ukupno) VALUES (37, 13, 'Druge naknade', 3, 30, 90);
+INSERT INTO md.stavke_ugovora (id_stavke, id_ugovora, vrsta_rada, broj_sati, cijena, ukupno) VALUES (39, 14, 'Redoviti rad', 50, 23.440000000000001, 1172);
+INSERT INTO md.stavke_ugovora (id_stavke, id_ugovora, vrsta_rada, broj_sati, cijena, ukupno) VALUES (40, 14, 'Rad noću, blagdani, nedjelja (50%)', 7, 35.159999999999997, 246.12);
+INSERT INTO md.stavke_ugovora (id_stavke, id_ugovora, vrsta_rada, broj_sati, cijena, ukupno) VALUES (41, 15, 'Redoviti rad', 200, 25, 5000);
+INSERT INTO md.stavke_ugovora (id_stavke, id_ugovora, vrsta_rada, broj_sati, cijena, ukupno) VALUES (43, 16, 'Redoviti rad', 60, 25, 1500);
+INSERT INTO md.stavke_ugovora (id_stavke, id_ugovora, vrsta_rada, broj_sati, cijena, ukupno) VALUES (44, 17, 'Redoviti rad', 70, 25, 1750);
+INSERT INTO md.stavke_ugovora (id_stavke, id_ugovora, vrsta_rada, broj_sati, cijena, ukupno) VALUES (45, 18, 'Redoviti rad', 60, 25, 1500);
+INSERT INTO md.stavke_ugovora (id_stavke, id_ugovora, vrsta_rada, broj_sati, cijena, ukupno) VALUES (46, 19, 'Redoviti rad', 80, 27, 2160);
+INSERT INTO md.stavke_ugovora (id_stavke, id_ugovora, vrsta_rada, broj_sati, cijena, ukupno) VALUES (47, 19, 'Rad noću, blagdani, nedjelja (50%)', 10, 40.5, 405);
+INSERT INTO md.stavke_ugovora (id_stavke, id_ugovora, vrsta_rada, broj_sati, cijena, ukupno) VALUES (48, 20, 'Redoviti rad', 90, 23.440000000000001, 2109.5999999999999);
+INSERT INTO md.stavke_ugovora (id_stavke, id_ugovora, vrsta_rada, broj_sati, cijena, ukupno) VALUES (50, 20, 'Rad noću, blagdani, nedjelja (50%)', 40, 35.159999999999997, 1406.4000000000001);
+INSERT INTO md.stavke_ugovora (id_stavke, id_ugovora, vrsta_rada, broj_sati, cijena, ukupno) VALUES (51, 20, 'Druge naknade', 4, 50, 200);
+INSERT INTO md.stavke_ugovora (id_stavke, id_ugovora, vrsta_rada, broj_sati, cijena, ukupno) VALUES (32, 11, 'Redoviti rad', 150, 24, 3600);
+
+
+--
+-- TOC entry 2880 (class 0 OID 16531)
+-- Dependencies: 206
+-- Data for Name: strucne_spreme; Type: TABLE DATA; Schema: md; Owner: postgres
+--
+
+INSERT INTO md.strucne_spreme (id_spreme, kratica, naziv) VALUES (1, 'PE', 'Primary education');
+INSERT INTO md.strucne_spreme (id_spreme, kratica, naziv) VALUES (2, 'SE', 'Secondary education');
+INSERT INTO md.strucne_spreme (id_spreme, kratica, naziv) VALUES (3, 'BACC', 'Bachelor');
+INSERT INTO md.strucne_spreme (id_spreme, kratica, naziv) VALUES (4, 'MS', 'Master');
+INSERT INTO md.strucne_spreme (id_spreme, kratica, naziv) VALUES (5, 'PhD', 'Doctor');
+
+
+--
+-- TOC entry 2882 (class 0 OID 16536)
+-- Dependencies: 208
+-- Data for Name: studenti; Type: TABLE DATA; Schema: md; Owner: postgres
+--
+
+INSERT INTO md.studenti (id_studenta, id_spreme, oib, ime, prezime, adresa, datum_rodjenja, broj_studentske_iskaznice) VALUES (19, 3, '78129120321', 'Andrea', 'Duspara', 'Dr. Mile Budaka 71, Slavonski Brod', '1993-07-13', '761281');
+INSERT INTO md.studenti (id_studenta, id_spreme, oib, ime, prezime, adresa, datum_rodjenja, broj_studentske_iskaznice) VALUES (20, 4, '12321383824', 'Nikolina', 'Jurić', 'Diljska ulica 5, Slavonski Brod', '2002-05-28', '773218');
+INSERT INTO md.studenti (id_studenta, id_spreme, oib, ime, prezime, adresa, datum_rodjenja, broj_studentske_iskaznice) VALUES (21, 3, '72848324824', 'Ivan', 'Jurić', 'Trenkova 23, Varaždin', '1991-06-11', '342432');
+INSERT INTO md.studenti (id_studenta, id_spreme, oib, ime, prezime, adresa, datum_rodjenja, broj_studentske_iskaznice) VALUES (22, 3, '90234867755', 'Antonija', 'Varga', 'Ulica Zrinskih i Frankopana 8, Varaždin', '1996-08-01', '712732');
+INSERT INTO md.studenti (id_studenta, id_spreme, oib, ime, prezime, adresa, datum_rodjenja, broj_studentske_iskaznice) VALUES (23, 3, '75478438448', 'Goran', 'Milić', 'Zagrebačka 78, Varaždin', '1997-11-20', '374723');
+INSERT INTO md.studenti (id_studenta, id_spreme, oib, ime, prezime, adresa, datum_rodjenja, broj_studentske_iskaznice) VALUES (24, 2, '89004044034', 'Ivana', 'Ivanić', 'Vidovski trg 17, Varaždin', '1993-03-16', '812939');
+INSERT INTO md.studenti (id_studenta, id_spreme, oib, ime, prezime, adresa, datum_rodjenja, broj_studentske_iskaznice) VALUES (26, 3, '53264632381', 'Filip', 'Jurković', 'Kalnička ulica 11, Cakovec', '2000-12-02', '723552');
+INSERT INTO md.studenti (id_studenta, id_spreme, oib, ime, prezime, adresa, datum_rodjenja, broj_studentske_iskaznice) VALUES (27, 4, '81266312173', 'Maja', 'Majić', 'Ulica Ivana Gorana Kovačića 62, Bjelovar', '2003-11-20', '126362');
+INSERT INTO md.studenti (id_studenta, id_spreme, oib, ime, prezime, adresa, datum_rodjenja, broj_studentske_iskaznice) VALUES (25, 3, '74273438188', 'Marko', 'Živić', 'Ulica kralja Tomislava 9, Čakovec', '1998-05-28', '525421');
+
+
+--
+-- TOC entry 2884 (class 0 OID 16541)
+-- Dependencies: 210
+-- Data for Name: ugovori; Type: TABLE DATA; Schema: md; Owner: postgres
+--
+
+INSERT INTO md.ugovori (id_ugovora, id_poslodavca, id_posla, id_studenta, trajanje) VALUES (11, 11, 9, 19, '["2019-01-20 00:00:00","2019-01-31 00:00:00"]');
+INSERT INTO md.ugovori (id_ugovora, id_poslodavca, id_posla, id_studenta, trajanje) VALUES (12, 12, 10, 20, '["2019-01-20 00:00:00","2019-01-31 00:00:00"]');
+INSERT INTO md.ugovori (id_ugovora, id_poslodavca, id_posla, id_studenta, trajanje) VALUES (13, 9, 11, 21, '["2019-01-20 00:00:00","2019-01-31 00:00:00"]');
+INSERT INTO md.ugovori (id_ugovora, id_poslodavca, id_posla, id_studenta, trajanje) VALUES (14, 12, 10, 22, '["2019-01-20 00:00:00","2019-01-31 00:00:00"]');
+INSERT INTO md.ugovori (id_ugovora, id_poslodavca, id_posla, id_studenta, trajanje) VALUES (15, 9, 11, 25, '["2019-02-01 00:00:00","2019-02-28 00:00:00"]');
+INSERT INTO md.ugovori (id_ugovora, id_poslodavca, id_posla, id_studenta, trajanje) VALUES (16, 17, 11, 19, '["2019-02-01 00:00:00","2019-02-28 00:00:00"]');
+INSERT INTO md.ugovori (id_ugovora, id_poslodavca, id_posla, id_studenta, trajanje) VALUES (17, 17, 11, 27, '["2019-03-01 00:00:00","2019-03-31 00:00:00"]');
+INSERT INTO md.ugovori (id_ugovora, id_poslodavca, id_posla, id_studenta, trajanje) VALUES (18, 20, 12, 26, '["2019-04-01 00:00:00","2019-04-30 00:00:00"]');
+INSERT INTO md.ugovori (id_ugovora, id_poslodavca, id_posla, id_studenta, trajanje) VALUES (19, 15, 13, 20, '["2019-03-01 00:00:00","2019-03-31 00:00:00"]');
+INSERT INTO md.ugovori (id_ugovora, id_poslodavca, id_posla, id_studenta, trajanje) VALUES (20, 12, 10, 27, '["2019-01-24 00:00:00","2019-01-31 00:00:00"]');
+INSERT INTO md.ugovori (id_ugovora, id_poslodavca, id_posla, id_studenta, trajanje) VALUES (22, 20, 17, 26, '["2019-01-26 00:00:00","2019-01-31 00:00:00"]');
+INSERT INTO md.ugovori (id_ugovora, id_poslodavca, id_posla, id_studenta, trajanje) VALUES (23, 17, 10, 21, '["2019-01-26 00:00:00","2019-01-31 00:00:00"]');
+INSERT INTO md.ugovori (id_ugovora, id_poslodavca, id_posla, id_studenta, trajanje) VALUES (24, 9, 11, 22, '["2019-01-20 00:00:00","2019-01-31 00:00:00"]');
+
+
+--
+-- TOC entry 2902 (class 0 OID 0)
+-- Dependencies: 199
+-- Name: grupe_poslova_id_grupe_seq; Type: SEQUENCE SET; Schema: md; Owner: postgres
+--
+
+SELECT pg_catalog.setval('md.grupe_poslova_id_grupe_seq', 29, true);
+
+
+--
+-- TOC entry 2903 (class 0 OID 0)
+-- Dependencies: 201
+-- Name: poslodavci_id_poslodavca_seq; Type: SEQUENCE SET; Schema: md; Owner: postgres
+--
+
+SELECT pg_catalog.setval('md.poslodavci_id_poslodavca_seq', 30, true);
+
+
+--
+-- TOC entry 2904 (class 0 OID 0)
+-- Dependencies: 203
+-- Name: poslovi_id_posla_seq; Type: SEQUENCE SET; Schema: md; Owner: postgres
+--
+
+SELECT pg_catalog.setval('md.poslovi_id_posla_seq', 24, true);
+
+
+--
+-- TOC entry 2905 (class 0 OID 0)
+-- Dependencies: 205
+-- Name: stavke_ugovora_id_stavke_seq; Type: SEQUENCE SET; Schema: md; Owner: postgres
+--
+
+SELECT pg_catalog.setval('md.stavke_ugovora_id_stavke_seq', 57, true);
+
+
+--
+-- TOC entry 2906 (class 0 OID 0)
+-- Dependencies: 207
+-- Name: strucne_spreme_id_spreme_seq; Type: SEQUENCE SET; Schema: md; Owner: postgres
+--
+
+SELECT pg_catalog.setval('md.strucne_spreme_id_spreme_seq', 4, true);
+
+
+--
+-- TOC entry 2907 (class 0 OID 0)
+-- Dependencies: 209
+-- Name: studenti_id_studenta_seq; Type: SEQUENCE SET; Schema: md; Owner: postgres
+--
+
+SELECT pg_catalog.setval('md.studenti_id_studenta_seq', 35, true);
+
+
+--
+-- TOC entry 2908 (class 0 OID 0)
+-- Dependencies: 211
+-- Name: ugovori_id_ugovora_seq; Type: SEQUENCE SET; Schema: md; Owner: postgres
+--
+
+SELECT pg_catalog.setval('md.ugovori_id_ugovora_seq', 24, true);
+
+
+--
+-- TOC entry 2725 (class 2606 OID 16557)
+-- Name: grupe_poslova grupe_poslova_pkey; Type: CONSTRAINT; Schema: md; Owner: postgres
+--
+
+ALTER TABLE ONLY md.grupe_poslova
+    ADD CONSTRAINT grupe_poslova_pkey PRIMARY KEY (id_grupe);
+
+
+--
+-- TOC entry 2727 (class 2606 OID 16559)
+-- Name: poslodavci poslodavci_pkey; Type: CONSTRAINT; Schema: md; Owner: postgres
+--
+
+ALTER TABLE ONLY md.poslodavci
+    ADD CONSTRAINT poslodavci_pkey PRIMARY KEY (id_poslodavca);
+
+
+--
+-- TOC entry 2729 (class 2606 OID 16561)
+-- Name: poslovi poslovi_pkey; Type: CONSTRAINT; Schema: md; Owner: postgres
+--
+
+ALTER TABLE ONLY md.poslovi
+    ADD CONSTRAINT poslovi_pkey PRIMARY KEY (id_posla);
+
+
+--
+-- TOC entry 2731 (class 2606 OID 16563)
+-- Name: stavke_ugovora stavke_ugovora_pkey; Type: CONSTRAINT; Schema: md; Owner: postgres
+--
+
+ALTER TABLE ONLY md.stavke_ugovora
+    ADD CONSTRAINT stavke_ugovora_pkey PRIMARY KEY (id_stavke);
+
+
+--
+-- TOC entry 2733 (class 2606 OID 16565)
+-- Name: strucne_spreme strucne_spreme_pkey; Type: CONSTRAINT; Schema: md; Owner: postgres
+--
+
+ALTER TABLE ONLY md.strucne_spreme
+    ADD CONSTRAINT strucne_spreme_pkey PRIMARY KEY (id_spreme);
+
+
+--
+-- TOC entry 2735 (class 2606 OID 16567)
+-- Name: studenti studenti_pkey; Type: CONSTRAINT; Schema: md; Owner: postgres
+--
+
+ALTER TABLE ONLY md.studenti
+    ADD CONSTRAINT studenti_pkey PRIMARY KEY (id_studenta);
+
+
+--
+-- TOC entry 2737 (class 2606 OID 16569)
+-- Name: ugovori ugovori_pkey; Type: CONSTRAINT; Schema: md; Owner: postgres
+--
+
+ALTER TABLE ONLY md.ugovori
+    ADD CONSTRAINT ugovori_pkey PRIMARY KEY (id_ugovora);
+
+
+--
+-- TOC entry 2748 (class 2620 OID 16570)
+-- Name: studenti provjera_br_iskaznice_biu; Type: TRIGGER; Schema: md; Owner: postgres
+--
+
+CREATE TRIGGER provjera_br_iskaznice_biu BEFORE INSERT OR UPDATE ON md.studenti FOR EACH ROW EXECUTE PROCEDURE md.provjera_br_iskaznice();
+
+
+--
+-- TOC entry 2749 (class 2620 OID 16571)
+-- Name: studenti provjera_datum_rod_biu; Type: TRIGGER; Schema: md; Owner: postgres
+--
+
+CREATE TRIGGER provjera_datum_rod_biu BEFORE INSERT OR UPDATE ON md.studenti FOR EACH ROW EXECUTE PROCEDURE md.provjera_datum_rod();
+
+
+--
+-- TOC entry 2747 (class 2620 OID 16613)
+-- Name: stavke_ugovora provjera_dupl_stavke_biu; Type: TRIGGER; Schema: md; Owner: postgres
+--
+
+CREATE TRIGGER provjera_dupl_stavke_biu BEFORE INSERT ON md.stavke_ugovora FOR EACH ROW EXECUTE PROCEDURE md.provjera_duplikata_stavke();
+
+
+--
+-- TOC entry 2750 (class 2620 OID 16573)
+-- Name: studenti provjera_oiba_biu; Type: TRIGGER; Schema: md; Owner: postgres
+--
+
+CREATE TRIGGER provjera_oiba_biu BEFORE INSERT OR UPDATE ON md.studenti FOR EACH ROW EXECUTE PROCEDURE md.provjera_oiba();
+
+
+--
+-- TOC entry 2744 (class 2620 OID 16574)
+-- Name: poslodavci provjera_oiba_biu; Type: TRIGGER; Schema: md; Owner: postgres
+--
+
+CREATE TRIGGER provjera_oiba_biu BEFORE INSERT OR UPDATE ON md.poslodavci FOR EACH ROW EXECUTE PROCEDURE md.provjera_oiba();
+
+
+--
+-- TOC entry 2746 (class 2620 OID 16575)
+-- Name: poslovi provjera_satnice_biu; Type: TRIGGER; Schema: md; Owner: postgres
+--
+
+CREATE TRIGGER provjera_satnice_biu BEFORE INSERT OR UPDATE ON md.poslovi FOR EACH ROW EXECUTE PROCEDURE md.provjera_satnice();
+
+
+--
+-- TOC entry 2745 (class 2620 OID 16576)
+-- Name: poslodavci provjera_sifre_poslodavca_biu; Type: TRIGGER; Schema: md; Owner: postgres
+--
+
+CREATE TRIGGER provjera_sifre_poslodavca_biu BEFORE INSERT OR UPDATE ON md.poslodavci FOR EACH ROW EXECUTE PROCEDURE md.provjera_sifre_poslodavca();
+
+
+--
+-- TOC entry 2738 (class 2606 OID 16577)
+-- Name: poslovi poslovi_id_grupe_fkey; Type: FK CONSTRAINT; Schema: md; Owner: postgres
+--
+
+ALTER TABLE ONLY md.poslovi
+    ADD CONSTRAINT poslovi_id_grupe_fkey FOREIGN KEY (id_grupe) REFERENCES md.grupe_poslova(id_grupe) ON UPDATE CASCADE;
+
+
+--
+-- TOC entry 2739 (class 2606 OID 16582)
+-- Name: stavke_ugovora stavke_ugovora_id_ugovora_fkey; Type: FK CONSTRAINT; Schema: md; Owner: postgres
+--
+
+ALTER TABLE ONLY md.stavke_ugovora
+    ADD CONSTRAINT stavke_ugovora_id_ugovora_fkey FOREIGN KEY (id_ugovora) REFERENCES md.ugovori(id_ugovora) ON UPDATE CASCADE;
+
+
+--
+-- TOC entry 2740 (class 2606 OID 16587)
+-- Name: studenti studenti_id_spreme_fkey; Type: FK CONSTRAINT; Schema: md; Owner: postgres
+--
+
+ALTER TABLE ONLY md.studenti
+    ADD CONSTRAINT studenti_id_spreme_fkey FOREIGN KEY (id_spreme) REFERENCES md.strucne_spreme(id_spreme) ON UPDATE CASCADE;
+
+
+--
+-- TOC entry 2741 (class 2606 OID 16592)
+-- Name: ugovori ugovori_id_posla_fkey; Type: FK CONSTRAINT; Schema: md; Owner: postgres
+--
+
+ALTER TABLE ONLY md.ugovori
+    ADD CONSTRAINT ugovori_id_posla_fkey FOREIGN KEY (id_posla) REFERENCES md.poslovi(id_posla) ON UPDATE CASCADE;
+
+
+--
+-- TOC entry 2742 (class 2606 OID 16597)
+-- Name: ugovori ugovori_id_poslodavca_fkey; Type: FK CONSTRAINT; Schema: md; Owner: postgres
+--
+
+ALTER TABLE ONLY md.ugovori
+    ADD CONSTRAINT ugovori_id_poslodavca_fkey FOREIGN KEY (id_poslodavca) REFERENCES md.poslodavci(id_poslodavca) ON UPDATE CASCADE;
+
+
+--
+-- TOC entry 2743 (class 2606 OID 16602)
+-- Name: ugovori ugovori_id_studenta_fkey; Type: FK CONSTRAINT; Schema: md; Owner: postgres
+--
+
+ALTER TABLE ONLY md.ugovori
+    ADD CONSTRAINT ugovori_id_studenta_fkey FOREIGN KEY (id_studenta) REFERENCES md.studenti(id_studenta) ON UPDATE CASCADE;
+
+
+-- Completed on 2019-07-14 20:47:29
+
+--
+-- PostgreSQL database dump complete
+--
+

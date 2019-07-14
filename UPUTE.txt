@@ -1,8 +1,0 @@
-Kako biste uspješno postavili radno okruženje za aplikaciju StudentskiServis, slijedite ove korake:
-1. Instalirajte PostgreSQL 10.6 (verziju koja odgovara vašem operacijskom sustavu pronaðite ovdje: https://www.enterprisedb.com/downloads/postgres-postgresql-downloads)
-2. Dodajte proširenje temporal_tables (datoteka se nalazi na https://github.com/arkhipov/temporal_tables/releases - v1.2.0, pg10-x64.zip)
-3. Kopirajte sadržaj datoteke sa lokacije \share\extension u istoimenu datoteku u vašoj PostgreSQL instalaciji
-4. Kopirajte sadržaj datoteke \lib u istoimenu datoteku u vašoj PostgreSQL instalaciji
-5. Pokrenite SQL naredbe koje se nalaze u "korisnik.txt" uz pomoæ pgAdmina (desni klik na "postgres" bazu > Query Tool)
-6. Pokrenite SQL naredbe koje se nalaze u "baza_1_dio.txt" uz pomoæ pgAdmina (desni klik na "postgres" bazu > Query Tool)
-7. Pokrenite SQL naredbe koje se nalaze u "baza_2_dio.txt" uz pomoæ pgAdmina (desni klik na "TBP_baza" bazu > Query Tool)
